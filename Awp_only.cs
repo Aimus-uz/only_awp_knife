@@ -3,23 +3,21 @@ using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Utils;
 using Microsoft.Extensions.Logging;
 
-namespace deagle_only
+namespace awp_only
 {
-    public class deagle_only : BasePlugin
+    public class awp_only : BasePlugin
     {
         public override string ModuleAuthor => "GSM-RO (modified)";
-        public override string ModuleName => "Deagle_only";
-        public override string ModuleVersion => "1.0.2-nowarmup";
-        public override string ModuleDescription => "Deagle Only (весь матч, не только warmup)";
+        public override string ModuleName => "Awp_only";
+        public override string ModuleVersion => "1.0.1";
+        public override string ModuleDescription => "AWP Only (весь матч)";
 
-        private bool _messageSent = false;
         private static HashSet<string> AllowedWeapons = new();
 
         public override void Load(bool hotReload)
         {
             LoadConfig();
             RegisterEventHandler<EventPlayerSpawn>(OnPlayerSpawn);
-            RegisterEventHandler<EventRoundStart>(OnRoundStart);
             RegisterListener<Listeners.OnTick>(OnTick);
         }
 
@@ -29,42 +27,37 @@ namespace deagle_only
             if (!File.Exists(path))
             {
                 File.WriteAllText(path,
-                    "allowed_weapons = weapon_deagle, weapon_knife\n");
+                    "allowed_weapons = weapon_awp, weapon_knife\n");
             }
 
             var lines = File.ReadAllLines(path);
-            foreach (var line in lines)
+            foreach (var rawLine in lines)
             {
+                var line = rawLine.Trim();
+
                 if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
                     continue;
 
-                if (!line.StartsWith("allowed_weapons"))
-                    continue;
-
-                var parts = line.Split('=');
+                var parts = line.Split('=', 2);
                 if (parts.Length < 2)
                     continue;
 
-                AllowedWeapons = parts[1]
-                    .Split(',')
-                    .Select(w => w.Trim())
-                    .Where(w => !string.IsNullOrEmpty(w))
-                    .ToHashSet();
+                var key = parts[0].Trim();
+                var value = parts[1].Trim();
+
+                if (key == "allowed_weapons")
+                {
+                    AllowedWeapons = value
+                        .Split(',')
+                        .Select(w => w.Trim())
+                        .Where(w => !string.IsNullOrEmpty(w))
+                        .ToHashSet();
+                }
             }
 
             Logger.LogInformation(
-                $"[Deagle_only] Allowed weapons: {string.Join(", ", AllowedWeapons)}"
+                $"[Awp_only] Allowed weapons: {string.Join(", ", AllowedWeapons)}"
             );
-        }
-
-        private HookResult OnRoundStart(EventRoundStart @event, GameEventInfo info)
-        {
-            if (_messageSent)
-                return HookResult.Continue;
-
-            Server.PrintToChatAll($" {ChatColors.Green}[Server]{ChatColors.Default} Раунд {ChatColors.Red}ТОЛЬКО DEAGLE");
-            _messageSent = true;
-            return HookResult.Continue;
         }
 
         private static void OnTick()
